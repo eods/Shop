@@ -36,6 +36,12 @@
             })
             .AddEntityFrameworkStores<DataContext>();
 
+//App: ShopEds
+//Database name: ShopEds_db
+//Database server name : shopedsdbserver
+//Administrator username: edesantis
+//Administrator password: Eds1112!
+
             services.AddDbContext<DataContext>(cfg =>
             {
                 cfg.UseSqlServer(Configuration.GetConnectionString("DefaultConnection"));
