@@ -56,6 +56,8 @@
             this.context.Products.Add(new Product
             {
                 Name = name,
+                LastPurchase = DateTime.Now,
+                LastSale = DateTime.Now,
                 Price = this.random.Next(100),
                 IsAvailabe = true,
                 Stock = this.random.Next(100),
