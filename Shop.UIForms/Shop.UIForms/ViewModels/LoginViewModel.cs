@@ -1,46 +1,113 @@
 ﻿namespace Shop.UIForms.ViewModels
 {
     using System.Windows.Input;
+    using Common.Services;
     using GalaSoft.MvvmLight.Command;
-    using Shop.UIForms.Views;
+    using Newtonsoft.Json;
+    using Shop.Common.Helpers;
+    using Shop.Common.Models;
+    using Shop.UIForms.Helpers;
+    using Views;
     using Xamarin.Forms;
 
-    public class LoginViewModel
+    public class LoginViewModel : BaseViewModel
     {
+        private bool isRunning;
+        private bool isEnabled;
+        private readonly ApiService apiService;
+        public bool IsRemember { get; set; }
+
+        public bool IsRunning
+        {
+            get => this.isRunning;
+            set => this.SetValue(ref this.isRunning, value);
+        }
+
+        public bool IsEnabled
+        {
+            get => this.isEnabled;
+            set => this.SetValue(ref this.isEnabled, value);
+        }
+
         public string Email { get; set; }
+
         public string Password { get; set; }
+
         public ICommand LoginCommand => new RelayCommand(this.Login);
 
         public LoginViewModel()
         {
-            this.Email = "jzuluaga55@gmail.com";
-            this.Password = "123456";
+            this.apiService = new ApiService();
+            this.IsEnabled = true;
+            //this.Email = "jzuluaga55@gmail.com";
+            //this.Password = "123456";
+            this.IsRemember = true;
         }
+
         private async void Login()
         {
             if (string.IsNullOrEmpty(this.Email))
             {
-                await Application.Current.MainPage.DisplayAlert("Error", "You must enter an email", "Accept");
+                await Application.Current.MainPage.DisplayAlert(
+                    Languages.Error,
+                    Languages.EmailError,
+                    Languages.Accept);
                 return;
             }
 
             if (string.IsNullOrEmpty(this.Password))
             {
-                await Application.Current.MainPage.DisplayAlert("Error", "You must enter a password", "Accept");
+                await Application.Current.MainPage.DisplayAlert(
+                    Languages.Error,
+                    Languages.PasswordError,
+                    Languages.Accept);
                 return;
             }
 
-            if (!this.Email.Equals("jzuluaga55@gmail.com") || !this.Password.Equals("123456"))
+            this.IsRunning = true;
+            this.IsEnabled = false;
+
+            var request = new TokenRequest
             {
-                await Application.Current.MainPage.DisplayAlert("Error", "Incorrect user or password", "Accept");
+                Password = this.Password,
+                Username = this.Email
+            };
+
+            var url = Application.Current.Resources["UrlAPI"].ToString();
+            var response = await this.apiService.GetTokenAsync(
+                url,
+                "/Account",
+                "/CreateToken",
+                request);
+
+            this.IsRunning = false;
+            this.IsEnabled = true;
+
+            if (!response.IsSuccess)
+            {
+                await Application.Current.MainPage.DisplayAlert(
+                    Languages.Error,
+                    Languages.LoginError,
+                    Languages.Accept);
                 return;
             }
 
-            //await Application.Current.MainPage.DisplayAlert("Ok", "Fuck yeah!!!", "Accept");
-            MainViewModel.GetInstance().Products = new ProductsViewModel();
-            await Application.Current.MainPage.Navigation.PushAsync(new ProductsPage());
-        }
+            var token = (TokenResponse)response.Result;
+            var mainViewModel = MainViewModel.GetInstance();
+            mainViewModel.Token = token;
+            mainViewModel.UserEmail = this.Email;
+            mainViewModel.UserPassword = this.Password;
+            mainViewModel.Products = new ProductsViewModel();
 
+            Settings.IsRemember = this.IsRemember;
+            Settings.UserEmail = this.Email;
+            Settings.UserPassword = this.Password;
+            Settings.Token = JsonConvert.SerializeObject(token);
+
+            //await Application.Current.MainPage.Navigation.PushAsync(new ProductsPage()); ahora arranca desde la MasterPage
+            Application.Current.MainPage = new MasterPage();
+        }
     }
+
 }
 

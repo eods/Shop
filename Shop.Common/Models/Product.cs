@@ -1,7 +1,7 @@
 ﻿namespace Shop.Common.Models
 {
-    using Newtonsoft.Json;
     using System;
+    using Newtonsoft.Json;
 
     public class Product
     {
@@ -18,22 +18,29 @@
         public string ImageUrl { get; set; }
 
         [JsonProperty("lastPurchase")]
-        public DateTime LastPurchase { get; set; }
+        public DateTime? LastPurchase { get; set; }
 
         [JsonProperty("lastSale")]
-        public DateTime LastSale { get; set; }
+        public DateTime? LastSale { get; set; }
 
         [JsonProperty("isAvailabe")]
         public bool IsAvailabe { get; set; }
 
         [JsonProperty("stock")]
-        public double Stock { get; set; }
+        public long Stock { get; set; }
 
         [JsonProperty("user")]
         public User User { get; set; }
 
         [JsonProperty("imageFullPath")]
-        public Uri ImageFullPath { get; set; }
-    }
+        public string ImageFullPath { get; set; }
 
+        public byte[] ImageArray { get; set; }
+
+
+        public override string ToString()
+        {
+            return $"{this.Name} {this.Price:C2}";
+        }
+    }
 }

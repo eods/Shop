@@ -2,6 +2,7 @@
 {
     using System;
     using System.IO;
+    using System.Linq;
     using System.Threading.Tasks;
     using Data;
     using Data.Entities;
@@ -11,7 +12,6 @@
     using Microsoft.EntityFrameworkCore;
     using Shop.Web.Models;
 
-    [Authorize]
     public class ProductsController : Controller
     {
         private readonly IProductRepository productRepository;
@@ -23,36 +23,33 @@
             this.userHelper = userHelper;
         }
 
-        // GET: Products
         public IActionResult Index()
         {
-            return View(this.productRepository.GetAll());
+            return View(this.productRepository.GetAll().OrderBy(p => p.Name));
         }
 
-        // GET: Products/Details/5
         public async Task<IActionResult> Details(int? id)
         {
             if (id == null)
             {
-                return NotFound();
+                return new NotFoundViewResult("ProductNotFound");
             }
 
             var product = await this.productRepository.GetByIdAsync(id.Value);
             if (product == null)
             {
-                return NotFound();
+                return new NotFoundViewResult("ProductNotFound");
             }
 
             return View(product);
         }
 
-        // GET: Products/Create
+        [Authorize(Roles = "Admin")]
         public IActionResult Create()
         {
             return View();
         }
 
-        // POST: Products/Create
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Create(ProductViewModel view)
@@ -66,7 +63,10 @@
                     var guid = Guid.NewGuid().ToString();
                     var file = $"{guid}.jpg";
 
-                    path = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot\\images\\Products", file);
+                    path = Path.Combine(
+                        Directory.GetCurrentDirectory(),
+                        "wwwroot\\images\\Products",
+                        file);
 
                     using (var stream = new FileStream(path, FileMode.Create))
                     {
@@ -101,7 +101,7 @@
             };
         }
 
-        // GET: Products/Edit/5
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> Edit(int? id)
         {
             if (id == null)
@@ -115,20 +115,20 @@
                 return NotFound();
             }
 
-            var view = this.ToProducViewModel(product);
+            var view = this.ToProductViewModel(product);
 
             return View(view);
         }
 
-        private ProductViewModel ToProducViewModel(Product product)
+        private ProductViewModel ToProductViewModel(Product product)
         {
             return new ProductViewModel
             {
                 Id = product.Id,
-                ImageUrl = product.ImageUrl,
                 IsAvailabe = product.IsAvailabe,
                 LastPurchase = product.LastPurchase,
                 LastSale = product.LastSale,
+                ImageUrl = product.ImageUrl,
                 Name = product.Name,
                 Price = product.Price,
                 Stock = product.Stock,
@@ -136,7 +136,6 @@
             };
         }
 
-        // POST: Products/Edit/5
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Edit(ProductViewModel view)
@@ -152,7 +151,10 @@
                         var guid = Guid.NewGuid().ToString();
                         var file = $"{guid}.jpg";
 
-                        path = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot\\images\\Products", file);
+                        path = Path.Combine(
+                            Directory.GetCurrentDirectory(),
+                            "wwwroot\\images\\Products",
+                            file);
 
                         using (var stream = new FileStream(path, FileMode.Create))
                         {
@@ -162,12 +164,7 @@
                         path = $"~/images/Products/{file}";
                     }
 
-                    //// TODO: Esto es porque desde la view no esta viniendo la fecha
-                    //if (view.LastSale == null) { view.LastSale = DateTime.Now; }
-                    //if (view.LastPurchase == null) { view.LastPurchase = DateTime.Now; }
-
                     var product = this.ToProduct(view, path);
-
                     product.User = await this.userHelper.GetUserByEmailAsync(this.User.Identity.Name);
                     await this.productRepository.UpdateAsync(product);
                 }
@@ -188,7 +185,7 @@
             return View(view);
         }
 
-        // GET: Products/Delete/5
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> Delete(int? id)
         {
             if (id == null)
@@ -213,6 +210,11 @@
             var product = await this.productRepository.GetByIdAsync(id);
             await this.productRepository.DeleteAsync(product);
             return RedirectToAction(nameof(Index));
+        }
+
+        public IActionResult ProductNotFound()
+        {
+            return this.View();
         }
     }
 }
